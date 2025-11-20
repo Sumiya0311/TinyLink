@@ -1,13 +1,32 @@
 const express = require("express");
-const bodyParser = require("body-parser");
-const { nanoid } = require("nanoid");
+const shortid = require("shortid");
+const cors = require("cors");
 
 const app = express();
-app.use(bodyParser.json());
 
-const urlDatabase = {}; // Simple in-memory database
+// Middleware
+app.use(express.json());
+app.use(cors());
 
-// POST /shorten - create a short URL
+// In-memory storage for short URLs
+// If you want DB version, tell me
+const urlDatabase = {};
+
+// Home route (fixes "Cannot GET /")
+app.get("/", (req, res) => {
+  res.send(`
+    <h1>TinyLink URL Shortener</h1>
+    <p>Use POST /shorten to create a short URL.</p>
+    <p>Example body:</p>
+    <pre>
+    {
+      "longUrl": "http://google.com"
+    }
+    </pre>
+  `);
+});
+
+// Create short URL
 app.post("/shorten", (req, res) => {
   const { longUrl } = req.body;
 
@@ -15,27 +34,26 @@ app.post("/shorten", (req, res) => {
     return res.status(400).json({ error: "longUrl is required" });
   }
 
-  const urlCode = nanoid(6); // generate short code
-  const shortUrl = `${process.env.BASE_URL}/${urlCode}`; // use environment variable
+  const shortCode = shortid.generate();
+  urlDatabase[shortCode] = longUrl;
 
-  urlDatabase[urlCode] = longUrl;
+  const shortUrl = `${process.env.BASE_URL || "https://your-render-domain.com"}/${shortCode}`;
 
-  return res.status(200).json({ shortUrl });
+  res.json({ shortUrl });
 });
 
-// GET /:code - redirect to original URL
+// Redirect short URL
 app.get("/:code", (req, res) => {
-  const longUrl = urlDatabase[req.params.code];
+  const code = req.params.code;
+  const longUrl = urlDatabase[code];
 
   if (!longUrl) {
-    return res.status(404).send("URL not found");
+    return res.status(404).send("Short URL not found");
   }
 
   res.redirect(longUrl);
 });
 
-// Start the server
+// Render uses dynamic ports
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
