@@ -12,7 +12,7 @@ app.use(cors());
 // If you want DB version, tell me
 const urlDatabase = {};
 
-// Home route (fixes "Cannot GET /")
+// Home route (fixes "Cannot GET /") 
 app.get("/", (req, res) => {
   res.send(`
     <h1>TinyLink URL Shortener</h1>
@@ -35,7 +35,12 @@ app.post("/shorten", (req, res) => {
   }
 
   const shortCode = shortid.generate();
-  urlDatabase[shortCode] = longUrl;
+  // urlDatabase[shortCode] = longUrl;
+  urlDatabase[shortCode] = {
+  longUrl,
+  clicks: 0
+};
+
 
   const shortUrl = `${process.env.BASE_URL || "https://your-render-domain.com"}/${shortCode}`;
 
